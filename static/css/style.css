@@ -1,0 +1,41 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f8f8f8;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background: #1f8ef1;
+    color: white;
+    text-align: center;
+    padding: 1rem;
+}
+
+table {
+    width: 80%;
+    margin: 2rem auto;
+    border-collapse: collapse;
+    background: white;
+}
+
+th, td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+th {
+    background: #1f8ef1;
+    color: white;
+}
+
+footer {
+    text-align: center;
+    padding: 1rem;
+    background: #1f8ef1;
+    color: white;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}

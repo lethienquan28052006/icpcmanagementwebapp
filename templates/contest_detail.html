@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Contest {{ contest_id }} Detail</title>
+</head>
+<body>
+    <h1>Chi tiết Contest {{ contest_id }}</h1>
+
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Hạng</th>
+                <th>Tài khoản</th>
+                {% for problem in problems %}
+                    <th>{{ problem.index }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td>{{ row.rank }}</td>
+                    {% if row.party.members %}
+                        <td>{{ row.party.members[0].handle }}</td>
+                    {% else %}
+                        <td>Unknown</td>  {# hoặc để trống cũng được: <td></td> #}
+                    {% endif %}
+                    {% for problem_result in row.problemResults %}
+                        <td>
+                            {% if problem_result.points > 0 %}
+                                {{ problem_result.points }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="/contest_detail">← Quay lại danh sách contest</a>
+</body>
+</html>
