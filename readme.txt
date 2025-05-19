@@ -17,7 +17,7 @@
 
 ## Usage
 1. Install dependencies:
-2. Launch the server (see above).
+2. Launch the server (see above) : uvicorn main:app --reload
 3. Open your browser at [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 
 ## Admin
@@ -27,3 +27,4 @@
   - Password: `admin123`
 
 ---
+
