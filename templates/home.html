@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Danh sách Contest - Codeforces</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    {% if current_user and current_user.role == "admin" %}
+    <div class="admin-panel">
+        <h3>Admin Panel</h3>
+        <form action="/admin/update-problems" method="post">
+            <label for="contestId">Contest ID:</label>
+            <input type="number" id="contestId" name="contest_id" required>
+            <br>
+            <label for="problems">Problems (JSON format):</label>
+            <textarea id="problems" name="problems" placeholder='[{"name": "Problem A", "topics": "math"}]' required></textarea>
+            <br>
+            <button type="submit">Update Problems</button>
+        </form>
+    </div>
+    {% endif %}
+    <h2>Danh sách Contest</h2>
+    <a href="/update-contests" class="button">Cập nhật contest từ Codeforces</a>
+
+    <div class="main-container">
+        <!-- Left Section: Contest List -->
+        <div class="left-section">
+            <div class="standing-container">
+                <div class="standing-table">
+                    <table>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Duration</th>
+                        </tr>
+                        {% if contests %}
+                            {% for contest in contests %}
+                            <tr>
+                                <td>{{ contest.id }}</td>
+                                <td><a href="/contest/{{ contest.id }}/standings">{{ contest.name }}</a></td>
+                                <td>{{ contest.type }}</td>
+                                <td>{{ contest.phase }}</td>
+                                <td>{{ contest.durationSeconds // 3600 }} hours</td>
+                            </tr>
+                            <tr>
+                                <td colspan="5">
+                                    <strong>Problems:</strong>
+                                    <ul>
+                                        {% if contest_problems[contest.id] %}
+                                            {% for problem in contest_problems[contest.id] %}
+                                            <li>{{ problem }}</li>
+                                            {% endfor %}
+                                        {% else %}
+                                            <li>No problems available for this contest.</li>
+                                        {% endif %}
+                                    </ul>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5">No contests available.</td>
+                            </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Section: Top Problem Solvers -->
+        <div class="right-section">
+            <h3>Top Problem Solvers</h3>
+            <div class="top-solvers-container">
+                <table class="top-solvers-table">
+                    <tr>
+                        <th>Rank</th>
+                        <th>Handle</th>
+                        <th>Problems Solved</th>
+                    </tr>
+                    {% if top_solvers %}
+                        {% for solver in top_solvers %}
+                        <tr>
+                            <td>{{ loop.index }}</td> <!-- Rank -->
+                            <td><a href="/member/{{ solver[0] }}" class="handle">{{ solver[0] }}</a></td> <!-- Handle -->
+                            <td>{{ solver[1] }}</td> <!-- Problems Solved -->
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="3">No data available.</td>
+                        </tr>
+                    {% endif %}
+                </table>
+            </div>
+
+            <!-- Login Box -->
+            <div class="login-box">
+                <h3>Login</h3>
+                <form action="/auth/token" method="post">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                    <br>
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <br>
+                    <button type="submit">Login</button>
+                </form>
+            </div>
+
+            <!-- Search Box for Member Statistics -->
+            <div class="member-search">
+                <h3>Search Member Statistics</h3>
+                <form id="memberSearchForm" onsubmit="goToMemberPage(event)">
+                    <input type="text" id="memberHandle" placeholder="Enter member handle" required>
+                    <button type="submit">Go</button>
+                </form>
+            </div>
+            
+            <script>
+                function goToMemberPage(event) {
+                    event.preventDefault(); // Prevent the form from submitting normally
+                    const handle = document.getElementById('memberHandle').value.trim();
+                    if (handle) {
+                        window.location.href = `/member/${handle}`; // Redirect to the correct URL
+                    }
+                }
+            </script>
+        </div>
+    </div>
+</body>
+</html>

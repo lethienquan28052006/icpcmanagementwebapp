@@ -1,181 +1,316 @@
-import time
-import random
-import string
-import hashlib
-import httpx
+# main.py
 from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
-
-# ==== Khởi tạo app FastAPI ====
-
-global_contest_id = [599051, 570856]
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import httpx
+from backend.models import Base, Contest, Solver, Problem, Standing  # Import Standing model
+from backend.sign_url import build_signed_url
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# ==== Codeforces API key/secret ====
+DATABASE_URL = "sqlite:///./contests.db"
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+Session = sessionmaker(bind=engine)
+Base.metadata.create_all(bind=engine)
+
 API_KEY = "12b0d3dffa133a35baf0468e1593f8af729030c5"
 API_SECRET = "9dd282d3b9afcc3973a9e15865fbae9e94098ca8"
 
-# ==== Hàm hỗ trợ ký API ====
+CONTEST_IDS = [567974, 558527, 556749, 554579, 553549, 552568]
 
-def generate_random_string(length=6):
-    letters = string.ascii_lowercase + string.digits
-    return ''.join(random.choice(letters) for _ in range(length))
+def fetch_contest_info(contest_id: int):
+    """
+    Fetch contest information from the Codeforces API for a given contest ID.
 
-def build_signed_url(method_name, params):
-    params["apiKey"] = API_KEY
-    params["time"] = str(int(time.time()))
-    sorted_params = sorted(params.items())
-    param_str = '&'.join(f"{k}={v}" for k, v in sorted_params)
+    Args:
+        contest_id (int): The ID of the contest to fetch.
 
-    random_str = generate_random_string()
-    string_to_hash = f"{random_str}/{method_name}?{param_str}#{API_SECRET}"
-    hash_object = hashlib.sha512(string_to_hash.encode('utf-8'))
-    apiSig = random_str + hash_object.hexdigest()
-
-    full_url = f"https://codeforces.com/api/{method_name}?{param_str}&apiSig={apiSig}"
-    return full_url
-
-# ==== Hàm lấy dữ liệu standings có xác thực ====
-
-async def get_private_scoreboard(contest_id: int):
-    method_name = "contest.standings"
+    Returns:
+        dict or None: The contest information dictionary if successful, otherwise None.
+    """
+    # Fetch contest data from the Codeforces API
+    method = "contest.standings"
     params = {
         "contestId": contest_id,
         "from": 1,
-        "count": 200,
+        "count": 1,
         "showUnofficial": "true"
     }
-    url = build_signed_url(method_name, params)
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        return response.json()
-
-async def get_group_members(group_id):
-    method_name = "group.listMembers"
-    params = {
-        "groupId": group_id
-    }
-    url = build_signed_url(method_name, params)
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(url)
-        return response.json()
-
-# ==== Route chính ====
-
-# Hàm lấy danh sách thành viên của nhóm Codeforces
-async def get_group_members(group_id: int):
-    with open("member.txt", "r", encoding="utf-8") as f:
-        members = [line.strip() for line in f if line.strip()]
-    return members
-
-
-@app.get("/overall_ranking", response_class=HTMLResponse)
-async def overall_ranking(request: Request):
-    contest_ids = global_contest_id  # ví dụ: danh sách contest mà bạn quan tâm
-    user_scores = defaultdict(int)  # mapping: handle -> số bài solved
-    group_id = "your_group_id_here"  # ID của nhóm Codeforces, không cần thiết lắm
-    group_members_data = await get_group_members(group_id)
-
-    # Lấy danh sách thành viên của nhóm
-    group_members_set = set(member.lower() for member in group_members_data)
-
-    for contest_id in contest_ids:
-        data = await get_private_scoreboard(contest_id)
-        if data["status"] == "OK":
-            rows = data["result"]["rows"]
-            for row in rows:
-                members = row["party"].get("members", [])
-                if members:
-                    handle = members[0]["handle"]
-                    if handle.lower() in group_members_set:
-                        problems_solved = sum(1 for problem in row["problemResults"] if problem["points"] > 0)
-                        user_scores[handle] += problems_solved
-
-    sorted_users = sorted(user_scores.items(), key=lambda x: x[1], reverse=True)
-
-    return templates.TemplateResponse("overall_ranking.html", {"request": request, "ranking": sorted_users})
-
-
-# === contest detail ===
-
-@app.get("/contest_detail", response_class=HTMLResponse)
-async def contests_list(request: Request):
-    contest_ids = global_contest_id  # <-- List các contest ID
-
-    contest_infos = []
-    for contest_id in contest_ids:
-        data = await get_private_scoreboard(contest_id)
-        if data["status"] == "OK":
-            contest_name = data["result"].get("contest", {}).get("name", f"Contest {contest_id}")
-            contest_infos.append({
-                "id": contest_id,
-                "name": contest_name
-            })
-    
-    return templates.TemplateResponse("contest_list.html", {
-        "request": request,
-        "contests": contest_infos
-    })
-
-@app.get("/contest/{contest_id}", response_class=HTMLResponse)
-async def contest_detail(contest_id: int, request: Request):
-    data = await get_private_scoreboard(contest_id)
-    if data["status"] == "OK":
-        rows = data["result"]["rows"]
-        problems = data["result"]["problems"]
-    else:
-        rows = []
-        problems = []
-
-    return templates.TemplateResponse("contest_detail.html", {
-        "request": request,
-        "rows": rows,
-        "problems": problems,
-        "contest_id": contest_id
-    })
-
-# Bảng tổng chỉ số sức mạnh
-
-from collections import defaultdict
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    contest_ids = global_contest_id
-    user_scores = defaultdict(int)
+    signed_url = build_signed_url(method, params)
 
     try:
-        for contest_id in contest_ids:
-            data = await get_private_scoreboard(contest_id)
-            if data.get("status") == "OK":
-                rows = data["result"]["rows"]
-                for row in rows:
-                    members = row.get("party", {}).get("members", [])
-                    if members:
-                        handle = members[0].get("handle", "unknown")
-                        problems = row.get("problemResults", [])
-                        solved = sum(1 for p in problems if p.get("points", 0) > 0)
-                        user_scores[handle] += solved
+        response = httpx.get(signed_url)
+        print(f"📡 Fetching contest {contest_id}: {response.status_code}")
+        if response.status_code == 200:
+            data = response.json()
+            if data["status"] == "OK":
+                return data["result"]["contest"]
             else:
-                print(f"Error fetching contest {contest_id}: {data}")
+                print("❌ Lỗi API:", data)
+        else:
+            print(f"❌ Status: {response.status_code}")
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"❌ Exception: {e}")
+    return None
 
-    # Đảm bảo sorted_users là list of tuples (handle, solved)
-    sorted_users = sorted(user_scores.items(), key=lambda x: x[1], reverse=True)
+@app.post("/update-contests")
+def update_contests():
+    """
+    Update contests and standings in the database from the Codeforces API.
 
-    # Kiểm tra lại xem sorted_users có đúng định dạng không
-    print("Sorted Users:", sorted_users)
+    Returns:
+        dict: A message indicating how many contests were added or updated.
+    """
+    # Update contests and standings in the database
+    db = Session()
+    added = 0
+    updated = 0
 
-    return templates.TemplateResponse("scoreboard.html", {
+    for contest_id in CONTEST_IDS:
+        # Fetch contest data from the Codeforces API
+        contest_data = fetch_contest_info(contest_id)
+        if contest_data:
+            # Check if the contest already exists
+            existing_contest = db.query(Contest).filter(Contest.id == contest_id).first()
+            if existing_contest:
+                # Update existing contest details
+                existing_contest.name = contest_data["name"]
+                existing_contest.type = contest_data["type"]
+                existing_contest.phase = contest_data["phase"]
+                existing_contest.durationSeconds = contest_data["durationSeconds"]
+                db.commit()
+                updated += 1
+                print(f"🔄 Updated contest {contest_data['name']}.")
+            else:
+                # Add new contest to the database
+                new_contest = Contest(
+                    id=contest_data["id"],
+                    name=contest_data["name"],
+                    type=contest_data["type"],
+                    phase=contest_data["phase"],
+                    durationSeconds=contest_data["durationSeconds"]
+                )
+                db.add(new_contest)
+                db.commit()
+                added += 1
+                print(f"✅ Added contest {contest_data['name']}.")
+
+            # Fetch and update/add standings for the contest
+            standings = fetch_contest_standings(contest_id)
+            if standings:
+                # Delete existing standings for the contest
+                db.query(Standing).filter(Standing.contest_id == contest_id).delete()
+                db.commit()
+
+                # Add updated standings
+                for standing in standings:
+                    new_standing = Standing(
+                        handle=standing["handle"],
+                        rank=standing["rank"],
+                        problems_solved=standing["problems_solved"],
+                        contest_id=contest_id
+                    )
+                    db.add(new_standing)
+                db.commit()
+                print(f"🔄 Updated standings for contest {contest_data['name']}.")
+
+    db.close()
+    return {"message": f"Added {added} new contests, updated {updated} existing contests."}
+
+
+@app.get("/update-contests")
+def update_contests_get():
+    """
+    HTTP GET endpoint to trigger updating contests and standings.
+
+    Returns:
+        dict: A message indicating how many contests were added or updated.
+    """
+    return update_contests()
+
+
+@app.get("/contest/{contest_id}/standings", response_class=HTMLResponse)
+async def contest_standings(request: Request, contest_id: int):
+    """
+    Render the standings page for a specific contest.
+
+    Args:
+        request (Request): The incoming HTTP request.
+        contest_id (int): The ID of the contest.
+
+    Returns:
+        TemplateResponse: The rendered standings.html template.
+    """
+    db = Session()
+    contest = db.query(Contest).filter(Contest.id == contest_id).first()
+    if not contest:
+        db.close()
+        return templates.TemplateResponse("error.html", {"request": request, "message": "Contest not found"})
+
+    standings = db.query(Standing).filter(Standing.contest_id == contest_id).all()
+    db.close()
+
+    # Convert standings to a list of dictionaries for the template
+    standings_data = [
+        {
+            "handle": standing.handle,
+            "rank": standing.rank,
+            "problems_solved": standing.problems_solved
+        }
+        for standing in standings
+    ]
+
+    return templates.TemplateResponse("standings.html", {
         "request": request,
-        "ranking": sorted_users
+        "contest": contest,
+        "standings": standings_data
     })
 
-# Thêm đoạn này để chạy app khi file này được gọi trực tiếp
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+def fetch_contest_standings(contest_id: int):
+    """
+    Fetch standings for a given contest from the database.
+
+    Args:
+        contest_id (int): The ID of the contest.
+
+    Returns:
+        list: A list of dictionaries containing handle, rank, and problems solved.
+    """
+    db = Session()
+    try:
+        # Query the standings for the given contest ID
+        standings = db.query(Standing).filter(Standing.contest_id == contest_id).all()
+
+        # Convert the standings to a list of dictionaries
+        standings_data = [
+            {
+                "handle": standing.handle,
+                "rank": standing.rank,
+                "problems_solved": standing.problems_solved
+            }
+            for standing in standings
+        ]
+        return standings_data
+    except Exception as e:
+        print(f"❌ Exception while fetching standings from the database: {e}")
+        return []
+    finally:
+        db.close()
+
+@app.get("/member/{handle}", response_class=HTMLResponse)
+@app.get("/member", response_class=HTMLResponse)
+async def member_info(request: Request, handle: str = None):
+    """
+    Render the statistics page for a specific member (user).
+
+    Args:
+        request (Request): The incoming HTTP request.
+        handle (str, optional): The handle (username) of the member.
+
+    Returns:
+        TemplateResponse: The rendered member.html template with member statistics.
+    """
+    # this function will provide the statistic of each member.
+    if not handle:
+        handle = request.query_params.get("handle")  # Get handle from query parameters
+
+    db = Session()
+
+    # Fetch contests and standings for the member
+    contests = db.query(Contest).all()
+    member_data = []
+    for contest in contests:
+        standings = fetch_contest_standings(contest.id)
+        for row in standings:
+            if row["handle"] == handle:
+                member_data.append({
+                    "contest_name": contest.name,
+                    "rank": row.get("rank", None),  # Add rank if available
+                    "problems_solved": row["problems_solved"]
+                })
+
+    db.close()
+
+    # Pass the member data to the template
+    return templates.TemplateResponse("member.html", {
+        "request": request,
+        "handle": handle,
+        "member_data": member_data
+    })
+
+
+# get problems name
+
+def fetch_problem_names(contest_id: int):
+    """
+    Fetch all problem names for a given contest from the database.
+
+    Args:
+        contest_id (int): The ID of the contest.
+
+    Returns:
+        list: A list of problem names for the contest.
+    """
+    db = Session()
+    try:
+        # Query the problems for the given contest ID
+        problems = db.query(Problem).filter(Problem.contest_id == contest_id).all()
+
+        # Extract problem names
+        problem_names = [problem.name for problem in problems]
+        return problem_names
+    except Exception as e:
+        print(f"❌ Exception while fetching problems from the database: {e}")
+        return []
+    finally:
+        db.close()
+
+
+from sqlalchemy import func
+
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    """
+    Render the home page with contest list, top solvers, and problems for each contest.
+
+    Args:
+        request (Request): The incoming HTTP request.
+
+    Returns:
+        TemplateResponse: The rendered home.html template.
+    """
+    db = Session()
+    contests = db.query(Contest).all()  # Fetch all contests
+
+    # Aggregate problems solved by each solver across all contests
+    solver_stats = {}
+    contest_problems = {}  # Dictionary to store problem names for each contest
+
+    for contest in contests:
+        # Fetch standings for the contest
+        standings = fetch_contest_standings(contest.id)
+        for row in standings:
+            handle = row["handle"]
+            problems_solved = row["problems_solved"]
+            if handle not in solver_stats:
+                solver_stats[handle] = 0
+            solver_stats[handle] += problems_solved
+
+        # Fetch problem names for the contest
+        contest_problems[contest.id] = fetch_problem_names(contest.id)
+
+    # Sort solvers by total problems solved and get the top 10
+    top_solvers = sorted(solver_stats.items(), key=lambda x: x[1], reverse=True)[:10]
+
+    db.close()
+    return templates.TemplateResponse("home.html", {
+        "request": request,
+        "contests": contests,
+        "top_solvers": top_solvers,
+        "contest_problems": contest_problems  # Pass problem names to the template
+    })

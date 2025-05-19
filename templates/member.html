@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Member Info - {{ handle }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Include Chart.js -->
+    <style>
+        /* Explicitly set the size of the chart */
+        #rankChart {
+            width: 800px; /* Set the width to 800px */
+            height: 400px; /* Set the height to 400px */
+            margin: 0 auto; /* Center the chart */
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h2>Information for {{ handle }}</h2>
+    <a href="/">Back to Contest List</a>
+
+    <div class="member-info">
+        <h3>Contest Performance</h3>
+        <canvas id="rankChart"></canvas>
+
+        <h3>Problems Solved</h3>
+        <table>
+            <tr>
+                <th>Contest</th>
+                <th>Rank</th>
+                <th>Problems Solved</th>
+            </tr>
+            {% for data in member_data %}
+            <tr>
+                <td>{{ data.contest_name }}</td>
+                <td>{{ data.rank if data.rank else "N/A" }}</td>
+                <td>{{ data.problems_solved }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <script>
+        // Prepare data for the rank chart
+        const labels = {{ member_data | map(attribute='contest_name') | list | tojson }};
+        const ranks = {{ member_data | map(attribute='rank') | list | tojson }};
+
+        // Create the rank chart
+        const ctx = document.getElementById('rankChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Contest Rank',
+                    data: ranks,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        reverse: true, // Reverse the y-axis for ranks (lower is better)
+                        beginAtZero: false
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

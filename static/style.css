@@ -1,0 +1,221 @@
+/* Reset + Base Style */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Clean and modern font */
+}
+
+body {
+  background-color: #f8f9fa; /* Light gray background */
+  color: #212529; /* Dark text color */
+  padding: 20px;
+}
+
+/* Container for the Table */
+.standing-container {
+  max-width: 1000px;
+  margin: auto;
+  overflow-x: auto;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+  background: white;
+  padding: 16px;
+}
+
+/* Table Style */
+.standing-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+  min-width: 600px;
+}
+
+.standing-table thead {
+  background-color: #343a40; /* Dark header background */
+  color: #ffffff; /* White text for header */
+}
+
+.standing-table th, .standing-table td {
+  text-align: center;
+  padding: 12px 10px;
+  border-bottom: 1px solid #dee2e6; /* Light gray border */
+}
+
+/* Highlight Top Ranks */
+.standing-table tbody tr:nth-child(1) td {
+  background-color: #ffd7001a; /* Gold highlight */
+  font-weight: bold;
+}
+
+.standing-table tbody tr:nth-child(2) td {
+  background-color: #c0c0c01a; /* Silver highlight */
+  font-weight: bold;
+}
+
+.standing-table tbody tr:nth-child(3) td {
+  background-color: #cd7f321a; /* Bronze highlight */
+  font-weight: bold;
+}
+
+/* Handle Styling */
+.handle {
+  font-weight: 600;
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: linear-gradient(to right, #007bff, #00bfff); /* Gradient blue */
+  color: white;
+  transition: 0.3s;
+}
+
+.handle:hover {
+  background: linear-gradient(to right, #0056b3, #0099cc); /* Darker gradient on hover */
+  cursor: pointer;
+}
+
+/* Responsive Tweaks */
+@media (max-width: 768px) {
+  .standing-table th, .standing-table td {
+    font-size: 14px;
+    padding: 8px;
+  }
+
+  .handle {
+    font-size: 13px;
+    padding: 3px 8px;
+  }
+} 
+
+
+/* Responsive Design for Mobile */
+
+.main-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+/* Left Section: Contest List */
+.left-section {
+  flex: 3; /* Takes up more space */
+}
+
+/* Right Section: Top Problem Solvers */
+.right-section {
+  flex: 1; /* Takes up less space */
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+}
+
+/* Top Solvers Table */
+.top-solvers-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.top-solvers-table th, .top-solvers-table td {
+  text-align: center;
+  padding: 8px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.top-solvers-table th {
+  background-color: #343a40;
+  color: #ffffff;
+}
+
+.top-solvers-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.top-solvers-table tr:hover {
+  background-color: #f1f1f1;
+}
+
+
+.member-search {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.member-search input[type="text"] {
+  padding: 8px;
+  width: 70%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.member-search button {
+  padding: 8px 16px;
+  background-color: #007BFF;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.member-search button:hover {
+  background-color: #0056b3;
+}
+
+.chart-container {
+  width: 80%;
+  margin: 20px auto;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+
+.login-box {
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+}
+
+.login-box h3 {
+  margin-bottom: 10px;
+}
+
+.login-box form {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-box label {
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.login-box input {
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.login-box button {
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.login-box button:hover {
+  background-color: #0056b3;
+}

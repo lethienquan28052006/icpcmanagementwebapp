@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Standings for {{ contest.name }}</title>
+</head>
+<body>
+    <h1>Standings for {{ contest.name }}</h1>
+    <table border="1">
+        <tr>
+            <th>Rank</th>
+            <th>Handle</th>
+            <th>Problems Solved</th>
+        </tr>
+        {% for standing in standings %}
+        <tr>
+            <td>{{ standing.rank if standing.rank else "N/A" }}</td>
+            <td>{{ standing.handle }}</td>
+            <td>{{ standing.problems_solved }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
